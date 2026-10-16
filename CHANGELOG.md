@@ -10,11 +10,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- List picker filter line runs commands: a query starting with `!` searches
-  the caller's commands instead of rows, Enter dispatches the highlighted one
-  (`!fetch origin` passes `origin` as its operand), and KeepOpen commands can
-  refresh the rows without closing the overlay.
-
 ### Changed
 
 ### Deprecated
@@ -22,6 +17,66 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Removed
 
 ### Fixed
+
+### Security
+
+## [0.28.8] - 2026-10-15
+
+### Added
+
+- MCP is reachable through `mcp://` URLs on the regular tools: `ls mcp://`
+  lists servers, `ls mcp://<server>/tools/` lists tools, `read
+  mcp://<server>/tools/<tool>` shows a compact parameter summary, and `write
+  mcp://<server>/tools/<tool>` invokes the tool with the JSON argument object
+  as content. Invocations ask for approval through the write gate; browsing
+  stays read-tier.
+
+### Changed
+
+- The system prompt's MCP section teaches the `ls` / `read` / `write` URL
+  rhythm instead of the removed meta-tools.
+
+### Deprecated
+
+### Removed
+
+- The `mcp_list`, `mcp_inspect`, and `mcp_call` meta-tools; MCP now rides
+  `ls` / `read` / `write` via `mcp://` URLs with no extra tools registered.
+
+### Fixed
+
+### Security
+
+## [0.28.7] - 2026-10-14
+
+### Added
+
+- List picker filter line runs commands: a query starting with `!` searches
+  the caller's commands instead of rows, Enter dispatches the highlighted one
+  (`!fetch origin` passes `origin` as its operand), and KeepOpen commands can
+  refresh the rows without closing the overlay.
+- Skills load from the Agent Skills locations as well: `~/.agents/skills/` and
+  `.agents/skills/` from the working directory up to the repository root, after
+  `skill_path` (and after `~/.phi/skills` when none is set). A leading `~` in
+  `skill_path` or `PHI_SKILL_PATH` expands to the home directory instead of
+  silently matching nothing.
+
+### Changed
+
+- Cache Markdown parsing and text layout for assistant messages, agent summaries,
+  and expanded thinking bodies to reduce repeated rendering work.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- `find` and `grep` tool rows no longer repeat the tool name in their details
+  (`find find ...` / `grep grep ...`); an empty pattern shows the search path.
+- `skill_path: ~/…` loads skills again: a `~` in `skill_path` or
+  `PHI_SKILL_PATH` is expanded to the home directory, so it no longer stats a
+  directory literally named `~` and quietly finds nothing.
 
 ### Security
 
@@ -1045,7 +1100,9 @@ Earlier releases are available from GitHub tags only.
 
 <!-- Released section ended -->
 
-[Unreleased]: https://github.com/pulseaiclub/phi/compare/v0.28.6...HEAD
+[Unreleased]: https://github.com/pulseaiclub/phi/compare/v0.28.8...HEAD
+[0.28.8]: https://github.com/pulseaiclub/phi/releases/tag/v0.28.8
+[0.28.7]: https://github.com/pulseaiclub/phi/releases/tag/v0.28.7
 [0.28.6]: https://github.com/pulseaiclub/phi/releases/tag/v0.28.6
 [0.28.5]: https://github.com/pulseaiclub/phi/releases/tag/v0.28.5
 [0.28.4]: https://github.com/pulseaiclub/phi/releases/tag/v0.28.4

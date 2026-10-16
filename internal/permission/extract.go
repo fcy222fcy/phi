@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pulseaiclub/phi/internal/tools/edittool/sloppy"
+	"github.com/pulseaiclub/phi/internal/util"
 )
 
 // Extract builds a permission Request from a tool name and raw JSON args.
@@ -129,7 +130,14 @@ func ExtractAt(toolName string, args json.RawMessage, cwd string) (Request, erro
 }
 
 func withPath(req Request, path, cwd string) (Request, error) {
-	abs, err := AbsCleanAt(strings.TrimSpace(path), cwd)
+	path = strings.TrimSpace(path)
+	// Internal URLs name remote resources: keep them verbatim so the gate can
+	// apply URL rules instead of workspace path rules.
+	if IsInternalURL(path) {
+		req.Paths = []string{path}
+		return req, nil
+	}
+	abs, err := AbsCleanAt(path, cwd)
 	if err != nil {
 		return req, err
 	}
@@ -141,7 +149,7 @@ func withPath(req Request, path, cwd string) (Request, error) {
 func Summarize(req Request) string {
 	switch {
 	case req.Command != "":
-		return truncate(req.Command, 200)
+		return util.TruncateBytes(req.Command, 200, "…")
 	case len(req.Paths) > 0:
 		return strings.Join(req.Paths, ", ")
 	default:

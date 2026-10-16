@@ -159,7 +159,7 @@ models:
     api_key: ...
     think_level: high       # 可选：off | minimal | low | medium | high | …
 
-skill_path: ~/.phi/skills # SKILL.md 文件的加载目录
+skill_path: ~/.phi/skills # SKILL.md 文件的加载目录；`~/…` 会被展开
 max_rounds: 64            # 工具轮次预算；0 → 引擎默认值（64）
 
 agents:
@@ -349,6 +349,16 @@ phi run -p "fix the failing test in internal/tools"
 它们从 `~/.phi/skills/`（或 `skill_path` / `PHI_SKILL_PATH`）加载，注入到代理
 上下文中，让你能给模型提供可复用的流程：
 
+同时也会读取 Agent Skills 的 `~/.agents/skills/` 与 `.agents/skills/`，因此给
+其他 agent 装好的技能包无需配置即可使用。项目级 `.agents/skills/` 会从工作目录
+逐级向上查找，遇到 git 仓库根目录即停止。搜索顺序为 `skill_path` →
+`~/.agents/skills` → 各级项目目录，同名技能由靠前的目录胜出。`skill_path` 或
+`PHI_SKILL_PATH` 里的前导 `~` 会展开为 home 目录。
+
+> **安全：**技能文件属于工作区内容，不是可信输入——项目里的 `.agents/skills/`
+> 会被直接加载、无需确认。像审查 `AGENTS.md` 一样先审查技能文件再信任一个
+> checkout。
+
 ```markdown
 ---
 name: My Skill
@@ -431,15 +441,15 @@ codec 工作下 Rust / Go 在噪声内。扩展真实延迟仍由进程 spawn �
 多数 MCP Host 会在你提问前把全部 `tools/list` schema 塞进上下文——光浏览器类
 工具就能烧掉 5 万+ token。phi 不这么干。
 
-Agent 只拿到三个元工具；系统提示里会列出已配置的 **server 名**（不含 schema）：
+MCP 是挂在常规工具上的 **URL 命名空间**；系统提示里会列出已配置的 **server 名**（不含 schema）：
 
-| 工具 | 作用 |
+| 动作 | 调用 |
 | --- | --- |
-| `mcp_list` | 列某个 server 上的工具**名**（紧凑文本） |
-| `mcp_inspect` | 按需拉单个工具的精简参数说明 |
-| `mcp_call` | 执行 `server` + `tool` + `args` |
+| 列某个 server 上的工具 | `ls mcp://<server>/tools/` |
+| 看单个工具的精简参数说明 | `read mcp://<server>/tools/<tool>` |
+| 执行工具 | `write mcp://<server>/tools/<tool>`，content 为 JSON 参数 |
 
-流程：从提示词里的 server 名出发 → `mcp_list(server=…)` → `mcp_inspect` → `mcp_call`。子进程**懒启动**。调用仍走 PreHooks → Gate / Ask → Run → PostHooks。
+流程：从提示词里的 server 名出发 → `ls` → `read` → `write`。子进程**懒启动**。浏览是读级权限；执行仍走 PreHooks → write Gate / Ask → Run → PostHooks。
 
 ```sh
 phi mcp add browsermcp -- npx @browsermcp/mcp@latest
