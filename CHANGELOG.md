@@ -18,6 +18,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- The `@@` ranges in diffs produced by the edit tool now anchor a hunk side
+  that carries no lines on the line before it, so a hunk that only inserts or
+  only deletes lines reports the ranges `diff -u` and `git diff` would report
+  instead of starting one line past them.
+
 ### Security
 
 ## [0.28.8] - 2026-10-15
