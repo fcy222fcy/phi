@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -44,11 +45,34 @@ func GenerateDiffString(oldContent, newContent string, contextLines int) DiffRes
 	oldLines, oldEndsNL := splitLines(oldContent)
 	newLines, newEndsNL := splitLines(newContent)
 
+	// When the only difference is the trailing newline, git rewrites the last
+	// line and marks the side that lacks the newline. Otherwise a trailing
+	// newline is represented as an phantom empty line after the last content
+	// line, matching git diff semantics.
+	trailingOnly := slices.Equal(oldLines, newLines) && oldEndsNL != newEndsNL
+
+	if !trailingOnly && oldEndsNL != newEndsNL {
+		// A trailing newline is represented as a phantom empty line after the
+		// last content line. When the new side is empty, the old side's trailing
+		// newline is still emitted as a phantom line because the entire old
+		// content (including its newline) is being removed. When the old side is
+		// empty, the new side's content is being added wholesale, so its newline
+		// is part of that added line and is not emitted separately.
+		oldHasPhantom := oldEndsNL && len(oldLines) > 0 && oldLines[len(oldLines)-1] != ""
+		newHasPhantom := newEndsNL && len(oldLines) > 0 && len(newLines) > 0 && newLines[len(newLines)-1] != ""
+		if oldHasPhantom {
+			oldLines = append(oldLines, "")
+		}
+		if newHasPhantom {
+			newLines = append(newLines, "")
+		}
+	}
+
 	changes := computeChanges(oldLines, newLines)
 	diff := generateUnifiedDiffFromChanges(changes, contextLines)
 	firstChangedLine := computeFirstChangedLine(changes)
 
-	if diff == "" && oldEndsNL != newEndsNL && len(oldLines) > 0 {
+	if diff == "" && trailingOnly && len(oldLines) > 0 {
 		diff, firstChangedLine = trailingNewlineDiff(oldLines, oldEndsNL, newEndsNL)
 	}
 
