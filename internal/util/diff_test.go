@@ -143,10 +143,41 @@ func TestGenerateDiffStringFirstChangedLine(t *testing.T) {
 
 func TestGenerateFileDiffAddsHeaders(t *testing.T) {
 	require.Equal(t,
-		"--- a/file.go\n+++ b/file.go\n@@ -1,2 +1,3 @@\n A\n+B\n \n",
+		"--- a/file.go\n+++ b/file.go\n@@ -1,1 +1,2 @@\n A\n+B\n",
 		GenerateFileDiff("/tmp/dir/file.go", "A\n", "A\nB\n", 3),
 	)
 	require.Equal(t, "--- a/file.go\n+++ b/file.go\n", GenerateFileDiff("dir/file.go", "A", "A", 3))
+}
+
+// TestGenerateDiffStringTrailingNewline pins the git semantics for
+// trailing-newline-only differences: the last line is rewritten and the side
+// that lacks the final newline carries the "\ No newline at end of file"
+// marker, instead of reporting a phantom empty-line deletion.
+func TestGenerateDiffStringTrailingNewline(t *testing.T) {
+	t.Run("removing the final newline rewrites the last line", func(t *testing.T) {
+		require.Equal(t,
+			"@@ -1,1 +1,1 @@\n-b\n+b\n\\ No newline at end of file\n",
+			GenerateDiffString("b\n", "b", 3).Diff,
+		)
+	})
+	t.Run("adding the final newline rewrites the last line", func(t *testing.T) {
+		require.Equal(t,
+			"@@ -1,1 +1,1 @@\n-b\n\\ No newline at end of file\n+b\n",
+			GenerateDiffString("b", "b\n", 3).Diff,
+		)
+	})
+	t.Run("last line is the one rewritten", func(t *testing.T) {
+		require.Equal(t,
+			"@@ -2,1 +2,1 @@\n-b\n+b\n\\ No newline at end of file\n",
+			GenerateDiffString("a\nb\n", "a\nb", 3).Diff,
+		)
+	})
+	t.Run("identical content with a final newline yields no diff", func(t *testing.T) {
+		require.Empty(t, GenerateDiffString("a\nb\n", "a\nb\n", 3).Diff)
+	})
+	t.Run("first changed line is the rewritten line", func(t *testing.T) {
+		require.Equal(t, 2, GenerateDiffString("a\nb\n", "a\nb", 3).FirstChangedLine)
+	})
 }
 
 // TestGenerateDiffStringAppliesBack is the invariant every unified diff has to
